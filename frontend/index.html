@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Patent Diligence Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#1B1F26;
+    --surface:#232833;
+    --surface-raised:#2A303C;
+    --border:#3A414D;
+    --text:#E9E7E1;
+    --text-muted:#98A0AC;
+    --amber:#D4A22E;
+    --amber-dim:#4A3F22;
+    --slate:#7C8896;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+  }
+  h1,h2,h3{font-family:'Spectral', serif; font-weight:600; margin:0;}
+  .shell{max-width:1040px; margin:0 auto; padding:28px 24px 64px;}
+  header.top{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px;}
+  header.top h1{font-size:1.5rem; letter-spacing:0.01em;}
+  .tag{font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--slate); border:1px solid var(--border); padding:2px 8px; border-radius:3px;}
+  .subhead{color:var(--text-muted); font-size:0.92rem; margin-bottom:28px; max-width:640px;}
+  nav.tabs{display:flex; gap:2px; margin-bottom:24px; border-bottom:1px solid var(--border);}
+  nav.tabs button{
+    background:none; border:none; color:var(--text-muted); font-family:'IBM Plex Sans';
+    font-size:0.92rem; padding:10px 4px; margin-right:24px; cursor:pointer; border-bottom:2px solid transparent;
+  }
+  nav.tabs button.active{color:var(--text); border-bottom:2px solid var(--amber);}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:20px 22px; margin-bottom:16px;}
+  label{display:block; font-size:0.82rem; color:var(--text-muted); margin-bottom:6px;}
+  input[type=text]{
+    width:100%; background:var(--surface-raised); border:1px solid var(--border); color:var(--text);
+    padding:9px 10px; border-radius:4px; font-family:'IBM Plex Mono', monospace; font-size:0.85rem; margin-bottom:14px;
+  }
+  input[type=text]:focus{outline:1px solid var(--amber); border-color:var(--amber);}
+  .row{display:flex; gap:14px;}
+  .row > div{flex:1;}
+  button.primary{
+    background:var(--amber); color:#1B1F26; border:none; font-weight:600; font-size:0.88rem;
+    padding:10px 18px; border-radius:4px; cursor:pointer; font-family:'IBM Plex Sans';
+  }
+  button.primary:disabled{opacity:0.5; cursor:default;}
+  .scan-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);}
+  .scan-row:last-child{border-bottom:none;}
+  .mono{font-family:'IBM Plex Mono', monospace; font-size:0.82rem;}
+  .status-pill{font-family:'IBM Plex Mono'; font-size:0.72rem; padding:2px 8px; border-radius:10px; border:1px solid var(--border); color:var(--text-muted);}
+  .status-pill.running{color:var(--amber); border-color:var(--amber-dim);}
+  .status-pill.complete{color:#8FBF8F; border-color:#3A4A3A;}
+  .link-btn{background:none; border:none; color:var(--amber); cursor:pointer; font-size:0.82rem; padding:0;}
+  .disclaimer{
+    background:var(--amber-dim); border:1px solid #6B592E; color:#F0DBA0; font-size:0.85rem;
+    padding:12px 16px; border-radius:5px; margin-bottom:20px;
+  }
+  .progress-track{display:flex; gap:10px; margin-bottom:6px;}
+  .progress-step{flex:1; background:var(--surface-raised); border:1px solid var(--border); border-radius:4px; padding:8px 10px; font-size:0.78rem; text-align:center; color:var(--text-muted);}
+  .progress-step.running{border-color:var(--amber); color:var(--amber);}
+  .progress-step.done{border-color:#3A4A3A; color:#8FBF8F;}
+  table{width:100%; border-collapse:collapse; font-size:0.85rem;}
+  th{text-align:left; color:var(--text-muted); font-weight:500; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; padding:6px 8px; border-bottom:1px solid var(--border);}
+  td{padding:9px 8px; border-bottom:1px solid var(--border); vertical-align:top;}
+  .signal-badge{display:inline-block; background:var(--amber-dim); color:var(--amber); font-family:'IBM Plex Mono'; font-size:0.72rem; padding:2px 7px; border-radius:3px;}
+  .empty{color:var(--text-muted); font-size:0.85rem; padding:14px 0;}
+  code.snippet{display:block; white-space:pre-wrap; background:var(--surface-raised); border:1px solid var(--border); border-radius:4px; padding:8px 10px; font-family:'IBM Plex Mono'; font-size:0.76rem; color:#C9CFD8; margin-top:4px;}
+  .section-label{font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--slate); margin:22px 0 8px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+const API_BASE = "http://localhost:8000/api/v1";
+const { useState, useEffect, useCallback, useRef } = React;
+
+function Disclaimer({ text }) {
+  return <div className="disclaimer">{text || "Signals for legal review — never a clearance determination."}</div>;
+}
+
+function Dashboard({ onScanCreated, scans }) {
+  const [repoUrl, setRepoUrl] = useState("https://github.com/example-org/disaster-alert-app");
+  const [branch, setBranch] = useState("main");
+  const [prId, setPrId] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const startScan = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/repos/scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repo_url: repoUrl, branch, pr_id: prId || null }),
+      });
+      const data = await res.json();
+      onScanCreated(data.scan_id);
+    } catch (e) {
+      alert("Could not reach the backend at " + API_BASE + ". Is uvicorn running?");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="card">
+        <h3 style={{marginBottom:14}}>Connect a repo</h3>
+        <label>Repository URL</label>
+        <input type="text" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} />
+        <div className="row">
+          <div>
+            <label>Branch</label>
+            <input type="text" value={branch} onChange={e => setBranch(e.target.value)} />
+          </div>
+          <div>
+            <label>PR ID (optional)</label>
+            <input type="text" value={prId} onChange={e => setPrId(e.target.value)} placeholder="e.g. 142" />
+          </div>
+        </div>
+        <button className="primary" onClick={startScan} disabled={loading}>
+          {loading ? "Queuing scan…" : "Run diligence scan"}
+        </button>
+        <p style={{color:"var(--text-muted)", fontSize:"0.78rem", marginTop:10}}>
+          Demo note: the prototype scans the bundled sample_repo regardless of the URL above, to keep the demo self-contained.
+        </p>
+      </div>
+
+      <div className="section-label">Recent scans</div>
+      <div className="card">
+        {scans.length === 0 && <div className="empty">No scans yet — run one above.</div>}
+        {scans.map(s => (
+          <div className="scan-row" key={s.id}>
+            <div>
+              <div className="mono">{s.id}</div>
+              <div style={{color:"var(--text-muted)", fontSize:"0.78rem"}}>{s.repo_url} · {s.branch}</div>
+            </div>
+            <div style={{display:"flex", alignItems:"center", gap:14}}>
+              <span className={`status-pill ${s.status}`}>{s.status}</span>
+              <button className="link-btn" onClick={() => onScanCreated(s.id)}>Open →</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProgressBar({ progress }) {
+  const steps = [["A", "Code similarity"], ["B", "License check"], ["C", "Design-doc check"]];
+  return (
+    <div className="progress-track">
+      {steps.map(([key, label]) => (
+        <div key={key} className={`progress-step ${progress ? progress[key] : "pending"}`}>
+          {label}<br/><span className="mono">{progress ? progress[key] : "pending"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RiskMemo({ scanId }) {
+  const [status, setStatus] = useState(null);
+  const [results, setResults] = useState(null);
+  const [draft, setDraft] = useState(null);
+  const pollRef = useRef(null);
+
+  const poll = useCallback(async () => {
+    if (!scanId) return;
+    try {
+      const res = await fetch(`${API_BASE}/scans/${scanId}/status`);
+      const data = await res.json();
+      setStatus(data);
+      if (data.status === "complete") {
+        clearInterval(pollRef.current);
+        const r = await fetch(`${API_BASE}/scans/${scanId}/results`);
+        setResults(await r.json());
+      }
+    } catch (e) { /* backend not reachable yet */ }
+  }, [scanId]);
+
+  useEffect(() => {
+    setResults(null);
+    setStatus(null);
+    setDraft(null);
+    if (!scanId) return;
+    poll();
+    pollRef.current = setInterval(poll, 1200);
+    return () => clearInterval(pollRef.current);
+  }, [scanId, poll]);
+
+  const generateDraft = async () => {
+    const ids = (results.flagged_functions || []).map(f => f.function_id);
+    const res = await fetch(`${API_BASE}/drafts/provisional`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scan_id: scanId, code_snippet_ids: ids }),
+    });
+    setDraft(await res.json());
+  };
+
+  if (!scanId) return <div className="card"><div className="empty">Run or open a scan from the Dashboard tab first.</div></div>;
+
+  return (
+    <div>
+      <div className="card">
+        <h3 style={{marginBottom:12}}>Scan {scanId}</h3>
+        <ProgressBar progress={status ? status.progress : null} />
+      </div>
+
+      {results && (
+        <>
+          <Disclaimer text={results.summary.disclaimer} />
+          <div className="card">
+            <strong>{results.summary.headline}</strong>
+            <div style={{color:"var(--text-muted)", fontSize:"0.82rem", marginTop:6}}>
+              {results.summary.flagged_function_count} code signals · {results.summary.license_flag_count} license signals · {results.summary.doc_flag_count} design-doc signals
+            </div>
+          </div>
+
+          <div className="section-label">Code similarity signals</div>
+          <div className="card">
+            {results.flagged_functions.length === 0 && <div className="empty">No lexical overlap with seed patents found.</div>}
+            {results.flagged_functions.map(f => (
+              <div key={f.function_id} style={{marginBottom:16}}>
+                <div style={{display:"flex", justifyContent:"space-between"}}>
+                  <span className="mono">{f.file_path} :: {f.function_name}</span>
+                  <span className="signal-badge">overlap {Math.round(f.similarity_score*100)}%</span>
+                </div>
+                <div style={{fontSize:"0.82rem", color:"var(--text-muted)", marginTop:4}}>
+                  Matched seed: <em>{f.matched_patent_title}</em> — {f.rationale}
+                </div>
+                <code className="snippet">{f.code_snippet}</code>
+              </div>
+            ))}
+          </div>
+
+          <div className="section-label">License / dependency signals</div>
+          <div className="card">
+            {results.license_flags.length === 0 && <div className="empty">No flagged dependencies.</div>}
+            {results.license_flags.length > 0 && (
+              <table>
+                <thead><tr><th>Dependency</th><th>License</th><th>Reason</th></tr></thead>
+                <tbody>
+                  {results.license_flags.map((l, i) => (
+                    <tr key={i}><td className="mono">{l.dependency}</td><td>{l.license}</td><td>{l.flag_reason}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="section-label">Design-doc signals</div>
+          <div className="card">
+            {results.doc_flags.length === 0 && <div className="empty">No design doc uploaded, or no overlap found.</div>}
+            {results.doc_flags.map((d, i) => (
+              <div key={i} style={{marginBottom:10}}>
+                <span className="signal-badge">overlap {Math.round(d.similarity_score*100)}%</span>
+                <div style={{fontSize:"0.85rem", marginTop:4}}>{d.doc_section}</div>
+                <div style={{fontSize:"0.78rem", color:"var(--text-muted)"}}>{d.note}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="section-label">Provisional draft</div>
+          <div className="card">
+            {!draft && <button className="primary" onClick={generateDraft}>Generate provisional draft skeleton</button>}
+            {draft && (
+              <div>
+                <div className="disclaimer">Drafting aid only — route to a registered patent attorney before filing.</div>
+                {Object.entries(draft.sections).map(([key, val]) => (
+                  <div key={key} style={{marginBottom:14}}>
+                    <div className="section-label">{key.replace("_"," ")}</div>
+                    <div style={{whiteSpace:"pre-wrap", fontSize:"0.85rem"}}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AuditTrail({ scanId }) {
+  const [steps, setSteps] = useState(null);
+  const [expanded, setExpanded] = useState(null);
+
+  useEffect(() => {
+    setSteps(null);
+    if (!scanId) return;
+    fetch(`${API_BASE}/audit/${scanId}`)
+      .then(r => r.json())
+      .then(d => setSteps(d.steps))
+      .catch(() => setSteps([]));
+  }, [scanId]);
+
+  if (!scanId) return <div className="card"><div className="empty">Run or open a scan from the Dashboard tab first.</div></div>;
+  if (steps === null) return <div className="card"><div className="empty">Loading audit trail…</div></div>;
+
+  const fmtTime = (t) => new Date(t * 1000).toLocaleTimeString();
+
+  return (
+    <div>
+      <div className="card">
+        <h3 style={{marginBottom:4}}>Audit trail — {scanId}</h3>
+        <div style={{color:"var(--text-muted)", fontSize:"0.82rem"}}>
+          Append-only log of every orchestrator and subagent action, in order.
+        </div>
+      </div>
+      <div className="card">
+        {steps.length === 0 && <div className="empty">No steps recorded yet.</div>}
+        {steps.map((s, i) => {
+          const isOpen = expanded === i;
+          return (
+            <div key={i} style={{borderBottom: i < steps.length-1 ? "1px solid var(--border)" : "none", padding:"10px 0"}}>
+              <div
+                style={{display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer"}}
+                onClick={() => setExpanded(isOpen ? null : i)}
+              >
+                <div style={{display:"flex", alignItems:"center", gap:10}}>
+                  <span className="mono" style={{color:"var(--amber)"}}>{fmtTime(s.timestamp)}</span>
+                  <span className="signal-badge">{s.agent}</span>
+                  <span style={{fontSize:"0.85rem"}}>{s.action.replaceAll("_"," ")}</span>
+                </div>
+                <span style={{color:"var(--text-muted)", fontSize:"0.78rem"}}>{isOpen ? "hide" : "details"}</span>
+              </div>
+              {isOpen && (
+                <div style={{marginTop:8, fontSize:"0.8rem", color:"var(--text-muted)"}}>
+                  {s.input_ref && <div>input: <span className="mono">{s.input_ref}</span></div>}
+                  {s.output_ref && <div>output: <span className="mono">{s.output_ref}</span></div>}
+                  {!s.input_ref && !s.output_ref && <div>(no additional detail recorded for this step)</div>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SeedPatentManager() {
+  const [patents, setPatents] = useState(null);
+  const [title, setTitle] = useState("");
+  const [abstract, setAbstract] = useState("");
+  const [domain, setDomain] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(() => {
+    fetch(`${API_BASE}/patents/seed`).then(r => r.json()).then(d => setPatents(d.patents));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const addPatent = async () => {
+    if (!title.trim() || !abstract.trim() || !domain.trim()) return;
+    setSaving(true);
+    try {
+      await fetch(`${API_BASE}/patents/seed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, abstract, domain }),
+      });
+      setTitle(""); setAbstract(""); setDomain("");
+      load();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="card">
+        <h3 style={{marginBottom:12}}>Add a seed patent / abstract</h3>
+        <label>Title</label>
+        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Real-time anomaly scoring for wearable ECG streams" />
+        <label>Domain</label>
+        <input type="text" value={domain} onChange={e => setDomain(e.target.value)} placeholder="e.g. health, disaster-alert" />
+        <label>Abstract</label>
+        <input type="text" value={abstract} onChange={e => setAbstract(e.target.value)} placeholder="Plain-language abstract used for similarity matching" />
+        <button className="primary" onClick={addPatent} disabled={saving}>{saving ? "Adding…" : "Add to seed set"}</button>
+        <p style={{color:"var(--text-muted)", fontSize:"0.78rem", marginTop:10}}>
+          Demo/admin only — this seed set is synthetic and illustrative, not a real patent-search index.
+        </p>
+      </div>
+
+      <div className="section-label">Current seed set{patents ? ` (${patents.length})` : ""}</div>
+      <div className="card">
+        {patents === null && <div className="empty">Loading…</div>}
+        {patents && (
+          <table>
+            <thead><tr><th>Title</th><th>Domain</th><th>Abstract</th></tr></thead>
+            <tbody>
+              {patents.map(p => (
+                <tr key={p.id}>
+                  <td style={{width:"26%"}}>{p.title}</td>
+                  <td style={{width:"12%"}}><span className="signal-badge">{p.domain}</span></td>
+                  <td style={{color:"var(--text-muted)", fontSize:"0.8rem"}}>{p.abstract}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState("dashboard");
+  const [scans, setScans] = useState([]);
+  const [activeScan, setActiveScan] = useState(null);
+
+  const onScanCreated = (id) => {
+    setScans(prev => prev.some(s => s.id === id) ? prev : [{ id, status: "queued", repo_url: "(sample_repo demo)", branch: "main" }, ...prev]);
+    setActiveScan(id);
+    setTab("memo");
+  };
+
+  return (
+    <div className="shell">
+      <header className="top">
+        <h1>Patent Diligence Assistant</h1>
+        <span className="tag">prototype v0.1</span>
+      </header>
+      <div className="subhead">
+        Flags code, dependencies, and design docs against a seed patent set, and drafts a provisional filing skeleton.
+        Everything below is a signal for review — never a legal verdict.
+      </div>
+      <nav className="tabs">
+        <button className={tab==="dashboard"?"active":""} onClick={() => setTab("dashboard")}>Dashboard</button>
+        <button className={tab==="memo"?"active":""} onClick={() => setTab("memo")}>Risk Memo</button>
+        <button className={tab==="audit"?"active":""} onClick={() => setTab("audit")}>Audit Trail</button>
+        <button className={tab==="seed"?"active":""} onClick={() => setTab("seed")}>Seed Patents</button>
+      </nav>
+      {tab === "dashboard" && <Dashboard onScanCreated={onScanCreated} scans={scans} />}
+      {tab === "memo" && <RiskMemo scanId={activeScan} />}
+      {tab === "audit" && <AuditTrail scanId={activeScan} />}
+      {tab === "seed" && <SeedPatentManager />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
